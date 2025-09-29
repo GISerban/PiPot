@@ -133,6 +133,6 @@ def create_app():
 
 if __name__ == "__main__":
     # show effective config for easier debugging in container environment
-    print(f"Starting log-exporter; data dir = {BASE_DIR}, port = {'PORT', '8081'}")
+    print(f"Starting log-exporter; data dir = {BASE_DIR}, port = 8081}")
     app = create_app()
     web.run_app(app, host="0.0.0.0", port=int("8081"))
