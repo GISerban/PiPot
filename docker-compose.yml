@@ -73,3 +73,14 @@ services:
     volumes:
       - ./data:/data:ro,Z
 
+  log-exporter:
+    build: ./data
+    container_name: log-exporter
+    restart: unless-stopped
+    user: "1000:1000"
+    ports:
+      - "8081:8081"
+    volumes:
+      - ./data:/data:Z
+    environment:
+      PYTHONUNBUFFERED: "1"
