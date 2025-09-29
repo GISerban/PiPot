@@ -1,0 +1,9 @@
+2025-09-29 19:41:18,676 - Command received from 172.18.0.1: su -l root
+2025-09-29 19:41:22,623 - Command received from 172.18.0.1: su -l root
+2025-09-29 19:41:33,723 - Backspace pressed
+2025-09-29 19:41:33,891 - Backspace pressed
+2025-09-29 19:41:34,009 - Backspace pressed
+2025-09-29 19:41:36,987 - Command received from 172.18.0.1: ps
+2025-09-29 19:41:47,389 - Backspace pressed
+2025-09-29 19:41:48,222 - Command received from 172.18.0.1: ps -ef
+2025-09-29 20:02:18,242 - Ctrl + D pressed
