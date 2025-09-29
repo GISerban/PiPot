@@ -1,0 +1,24 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <title>Pi Honeypot Dashboard</title>
+  <style>
+    body{font-family:system-ui,Segoe UI,Arial;margin:20px}
+    .ev{border:1px solid #eee;padding:10px;margin-bottom:8px;border-radius:6px}
+    .meta{font-size:0.9em;color:#444}
+    .hdr{font-weight:700}
+  </style>
+</head>
+<body>
+  <h1>Pi Honeypot — Recent Events</h1>
+  <p>Events saved in <code>/data/meta</code>. Refresh to update.</p>
+  {% for e in events %}
+    <div class="ev">
+      <div class="hdr">{{ e.timestamp }} — {{ e.type }}</div>
+      <div class="meta">from: {{ e.client_ip }} | path: {{ e.path if e.path is defined else "-" }}</div>
+      <pre>{{ (e.body_preview if e.body_preview is defined else (e.data_hex[:200] if e.data_hex is defined else '')) }}</pre>
+    </div>
+  {% endfor %}
+</body>
+</html>

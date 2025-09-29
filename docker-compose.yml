@@ -1,0 +1,75 @@
+services:
+  http-honeypot:
+    build: ./http_honeypot
+    container_name: http-honeypot
+    restart: unless-stopped
+    user: "1000:1000"
+    ports:
+      - "80:80"
+    volumes:
+      - ./data:/data:Z
+    environment:
+      LLM_BACKEND: "http://100.105.46.22:11434/api/generated"
+      ALLOWED_MODELS: "llama3.1:8b"
+      HTTP_PROMPT_TEMPLATE: |-
+        You are an HTTP server emulator.
+        Client: {client_ip}
+        METHOD: {method}
+        PATH: {path}
+        HEADERS:
+        {headers}
+        BODY:
+        {body}
+        ---
+        Respond with either JSON {status,headers,body} or plain text.
+
+  ssh-honeypot:
+    build: ./ssh_honeypot
+    container_name: ssh-honeypot
+    restart: unless-stopped
+    user: "1000:1000"
+    ports:
+      - "2222:2222"
+    volumes:
+      - ./data:/data:Z
+    environment:
+      LLM_BACKEND: "http://100.105.46.22:11434/api/generated"
+      ALLOWED_MODELS: "llama3.1:8b"
+      SSH_PROMPT_TEMPLATE: |-
+        You are a Linux shell emulator.
+        Attacker IP: {client_ip}
+        Username: {username}
+        Password: {password}
+        Command: {command}
+        History:
+        {command_history}
+        Return ONLY the command output (no prompt).
+
+  smtp-honeypot:
+    build: ./smtp_honeypot
+    container_name: smtp-honeypot
+    restart: unless-stopped
+    user: "1000:1000"
+    ports:
+      - "25:25"
+    volumes:
+      - ./data:/data:Z
+    environment:
+      LLM_BACKEND: "http://100.105.46.22:11434/api/generated"
+      ALLOWED_MODELS: "llama3.1:8b"
+      SMTP_PROMPT_TEMPLATE: |-
+        You are an SMTP server.
+        Client: {client_ip}
+        DATA preview:
+        {data_preview}
+        Return a realistic single-line 250 OK acknowledgement.
+
+  dashboard:
+    build: ./dashboard
+    container_name: honeypot-dashboard
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./data:/data:ro,Z
+
