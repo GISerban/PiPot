@@ -1,26 +1,33 @@
-# ssh_honeypot/Dockerfile
+# Start with a slim Python base image
 FROM python:3.12-slim
 
+# Set working directory
 WORKDIR /app
 
-# install build dependencies for cryptography if wheel not available
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-      build-essential libffi-dev libssl-dev python3-dev git ca-certificates && \
-    python3 -m pip install --upgrade pip setuptools wheel
+# Install system dependencies (curl for outbound requests, etc.)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
 
-# install paramiko (and its deps)
-RUN pip install --no-cache-dir paramiko
+# Copy project metadata and keys
+COPY pyproject.toml .
+COPY app.py ./ssh_honeypot/
+COPY server.key server.key.pub ./
 
-# copy app
-COPY app.py /app/
+# Install dependencies and project in editable mode
+RUN pip install --upgrade pip \
+    && pip install --no-cache-dir -e .
 
-# create non-root user and data dir (uid 1000)
-RUN adduser --disabled-login --uid 1000 honeypot \
-    && mkdir -p /data /data/meta /data/raws /data/logs /data/pcaps /data/attachments \
-    && chown -R 1000:1000 /data
+# Create a data directory and make it writable
+RUN mkdir -p /data && chmod 777 /data
+RUN chmod 644 /app/server.key /app/server.key.pub
 
-USER 1000
+
+# Expose SSH honeypot port
 EXPOSE 2222
-CMD ["python", "app.py"]
 
+# Set environment variables if needed
+ENV PYTHONUNBUFFERED=1
+
+# Default command to run the honeypot
+CMD ["ssh-honeypot"]
