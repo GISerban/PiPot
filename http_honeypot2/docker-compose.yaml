@@ -1,0 +1,19 @@
+version: "3.8"
+services:
+  http-honeypot:
+    build: .
+    image: local/http-honeypot:latest
+    container_name: http-honeypot
+    restart: unless-stopped
+    ports:
+      - "10134:10134"        # host:container
+    volumes:
+      - ./honeypot-logs:/app/logs   # host folder mounted to container logs
+    # If your host uses SELinux, you might need to add :Z to the volume:
+    # volumes:
+    #  - ./honeypot-logs:/app/logs:Z
+    environment:
+      # You can set default args via environment if you want; not required
+      # Example: override to change server banner or delays
+      # SERVER_BANNER: "Apache/2.4.41 (Ubuntu)"
+    command: ["--host", "0.0.0.0", "--port", "10134", "--log", "/app/logs/http-honeypot.log"]
