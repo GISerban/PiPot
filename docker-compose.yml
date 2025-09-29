@@ -33,7 +33,7 @@ services:
     volumes:
       - ./data:/data:Z
     environment:
-      LLM_BACKEND: "http://100.105.46.22:11434/api/generated"
+      LLM_BACKEND: "http://100.105.46.22:11434/api/generate"
       ALLOWED_MODELS: "llama3.1:8b"
       SSH_PROMPT_TEMPLATE: |-
         You are a Linux shell emulator.

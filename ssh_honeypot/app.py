@@ -22,7 +22,11 @@ import threading
 from logging.handlers import RotatingFileHandler
 import socket
 import argparse
-import time
+import os
+import json
+import urllib.request
+import urllib.error
+from typing import Optional
 
 # Constants
 BYTE_STRING_ASCII_CONTROL_C = b"\x03"
@@ -158,16 +162,16 @@ def emulated_shell(channel, client_ip_address):
                     case "exit":
                         channel.close()
                         return
-                    case "pwd":
-                        response += str.encode(f"/home/{SSH_USERNAME}")
+                    # case "pwd":
+                    #     response += str.encode(f"/home/{SSH_USERNAME}")
                     case "whoami":
                         response += str.encode(SSH_USERNAME)
-                    case "ls":
-                        response += str.encode(SSH_CURRENT_DIRECTORY_LIST_FILES)
-                    case "cat honeypot.conf":
-                        response += b"caught your ass"
+                    # case "ls":
+                    #     response += str.encode(SSH_CURRENT_DIRECTORY_LIST_FILES)
+                    # case "cat honeypot.conf":
+                    #     response += b"caught your ass"
                     case _:
-                        response += str.encode(command_string)
+                        response += str.encode(stream_llm_response(command_string))
 
                 channel.send(response + b"\r\n")
 
@@ -199,6 +203,8 @@ def handle_client(client, address, username, password):
             print("No channel was opened.")
             return
         try:
+            SSH_USERNAME = username
+            SSH_STANDARD_BANNER = f"Welcome to Ubuntu 20.04.2 LTS (GNU/Linux 5.4.0-80-generic x86_64) ({SSH_USERNAME})!\r\n"
             channel.send(str.encode(SSH_STANDARD_BANNER + '\n'))
             emulated_shell(channel, client_ip_address)
         except Exception as error:
@@ -236,6 +242,8 @@ def start_honeypot(address, port, username, password):
 
 
 def main():
+    # resp = stream_llm_response("ls -la")
+    # print("LLM response:", resp)
     parser = argparse.ArgumentParser(description="SSH Honeypot")
     parser.add_argument("-a", "--address", type=str, default="0.0.0.0")
     parser.add_argument("-p", "--port", type=int, default=2222)
@@ -245,8 +253,69 @@ def main():
     start_honeypot(
         arguments.address, arguments.port, arguments.username, arguments.password
     )
-    print("Honeypot started")
 
+
+def stream_llm_response(prompt: str, model: str = "ssh-llama", timeout: int = 30) -> str:
+    """
+    Send `prompt` to the LLM backend and block until the full streamed response is received.
+    Returns the concatenated 'response' fields from each NDJSON line.
+    """
+    import os
+    import json
+
+    backend = os.environ.get("LLM_BACKEND", "http://100.105.46.22:11434/api/generate").rstrip("/")
+    if "/api/" in backend:
+        url = backend
+    else:
+        url = f"{backend}/api/generate"
+
+    payload = {"model": model, "prompt": prompt}
+
+    try:
+        import requests
+    except Exception:
+        requests = None
+
+    try:
+        resp = requests.post(url, json=payload, timeout=timeout, stream=True, headers={"Accept": "application/x-ndjson, application/json"})
+    except Exception as e:
+        return f"Error: {e}"
+
+    if not resp.ok:
+        # try to read body for error details
+        try:
+            text = resp.text
+        except Exception:
+            text = ""
+        return f"HTTPError {resp.status_code}: {text}"
+
+    aggregated = ""
+    try:
+        for line in resp.iter_lines(decode_unicode=True):
+            if not line:
+                continue
+            try:
+                obj = json.loads(line)
+            except Exception:
+                # ignore non-json lines
+                continue
+            chunk = obj.get("response")
+            done = obj.get("done", False)
+            if chunk:
+                aggregated += str(chunk)
+            if done:
+                break
+    except Exception as e:
+        return f"Error while streaming: {e}"
+    finally:
+        try:
+            resp.close()
+        except Exception:
+            pass
+
+    return aggregated
 
 if __name__ == "__main__":
     main()
+    # resp = stream_llm_response("ls")
+    # print("LLM response:", resp)
